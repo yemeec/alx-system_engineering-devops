@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
-#Bash script that displays a list of current processes
+# Uses code from "1-list_your_processes" to only display lines containing "bash"
 # shellcheck disable=SC2009
-ps aux --forest | grep bash
+
+ps axuf | grep "bash"
