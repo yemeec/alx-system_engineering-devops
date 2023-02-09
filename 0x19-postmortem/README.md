@@ -1,30 +1,18 @@
-# Postmortem
-![Everytime you make a typo a kitten dies.(meme)](http://s2.quickmeme.com/img/35/3502d765ce5788d4a0c6f88ff8ec0d9d65e0473c089e7e9cd429e0bf8e0d1ebf.jpg)
-## Issue Summary:
-On 1/22/18 at 5:23 pm PST, 100% of the website's service was down for a total 12 minutes, with service reinstated at 5:35 pm PST. Users universally experienced a response with a status code of 500 (internal server error). The root cause of the outage was a single-letter, typographical error in which a `.php` file was typed as a `.phpp` file.
+<img src=./image.png width=50%>
 
-## Timeline for 1/22/18 (PST):
-**5:23 pm:** After deploying a WordPress update, a junior engineer noticed that the website was returning a 500 status code.
+# BooktifuL requests failure report
+Last week, it was reported that the BooktifuL platform was returning 500 Error on all requests made on the platform routes, all the services were down.  90% of the users were affected. The root cause was the failure of our master server web-01.
 
-**5:25 pm:** All running processes on a particular server were checked using `ps auxf`. Apache2 and MySQL were found to be running as expected, indicating an error with PHP/WordPress.
+## Timeline
+The error was realized on Saturday 26th February 1200 hours (East Africa Time) when our Site Reliability Engineer, Mr Elie saw the master server lagging in speed. Our engineers on call disconnected the master server web-01 for further system analysis and channelled all requests to client server web-02. They soled problem by Sunday 27th Febraury 2200 hours (East Africa Time).
 
-**5:26 pm:** The WordPress configuration file `/var/www/html/wp-config.php` was edited to enable debug mode.
+## Root cause and resolution
+The BooktifuL platform is served by 2 ubuntu cloud servers. The master server web-01 was connected to serve all requests, and it stopped functioning due to memory outage as a results of so many requests because during a previous test, the client server web-02 was disconnected temporarily for testing and was not connected to the load balancer afterwards. 
 
-**5:27 pm:** The website was curled to reveal a fatal error, a missing file `/var/www/html/wp-includes/class-wp-locale.phpp` required in `/var/www/html/wp-settings.php`. The nonexistent `.phpp` extension indicated a potential typographical error.
 
-**5:28 pm:** `ls` was used to check the contents of  `/var/www/html/wp-includes/`.  It was discovered that the file `/var/www/html/wp-includes/class-wp-locale.php ` existed, confirming a typographical error was made.
+The issue was fixed when the master server was temporarily disconnected for memory clean-up then connected back to the loadbalancer and round-robin algorithm was configured so that both the master and client servers can handle equal amount of requests.
 
-**5:30 pm:** The typographical error was fixed on the individual server using `sed -i 's/phpp/php/' /var/www/html/wp-settings.php`. 
-
-**5:31 pm:** Website service was then tested once more, with content being served as expected.
-
-**5:32 pm:** A puppet manifest was developed to fix this issue on a large scale.
-
-**5:35 pm:** The puppet manifest was deployed on all remaining servers, bringing website service back to 100%. 
-
-## Root cause and resolution:
-The root cause of this outage was a typo made in the php file `/var/www/html/wp-settings.php` in which the file `/var/www/html/wp-includes/class-wp-locale.phpp` was required. The extension of `.phpp` was a typographical error, meant to be `.php`. Since `/var/www/html/wp-includes/class-wp-locale.phpp` did not exist and was required, a fatal error was raised, preventing content from being served. Since this code was deployed on all servers, this error caused a 100% outage. A puppet manifest to fix the typographical error was developed and deployed on all servers, reinstating service within 12 minutes of the outage.
-
-![I see you test your code in production. I too like to live dangerously.(meme)](http://virtser.net/images/test_automation.jpg)
-## Corrective and preventative measures:
-To prevent wide-scale issues like this from occurring in the future, code should never be deployed on all servers before testing. Some things to consider for the future are: the development of company-wide testing protocol, setting up isolated docker containers for testing purposes, and the implementation of a two-person sign-off before major deployment.
+## Measures against such problem in future
+- Choose the best loadbalancing algorithm for your programs
+- Always keep an eye on your servers to ensure they are running properly
+- Have extra back-up servers to prevent your program fro completely going offline during an issue
